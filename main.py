@@ -8,7 +8,9 @@ import re
 import lyricsgenius
 import requests
 
-def get_albums(artist_name):
+SILENT_MODE = True
+
+def get_albums(artist_name, cutoff_year=2023):
     """Gets the albums from the given artist and saves all the lyrics for said albums into JSON
     files labelled Lyrics_{albumname}.json"""
 
@@ -19,25 +21,56 @@ def get_albums(artist_name):
     # search for artist, get artist ID for searching artist's albums, search albums
     artist_search = genius.search_artists(artist_name)
     artist_id = artist_search["sections"][0]["hits"][0]["result"]["id"]
-    albums = genius.artist_albums(artist_id)
-    albums = albums["albums"]
-
-    # TODO: known issue where sometimes release_date_components > year is NoneType
-    # not sure how to bypass that offhand, may need to do more testing.
+    
+    # finding all albums through
+    page = 1
+    albums = []
+    current_page = genius.artist_albums(artist_id, 50, page)
+    albums.extend(current_page["albums"])
+    while current_page["next_page"] is not None:
+        page += 1
+        current_page = genius.artist_albums(artist_id, 50, page)
+        albums.extend(current_page["albums"])
 
     # sort albums by year (earliest to latest)
     def sort_by_year(json):
         try:
-            return json["release_date_components"]["year"]
+            return json["release_date_components"]["year"] + \
+                   json["release_date_components"]["month"] + \
+                   json["release_date_components"]["day"]
         except KeyError:
             return 0
+        except TypeError:
+            return 0
+        
+    # filter by cutoff year (useful if you're searching for an artist with a lot of material after they break up)
+    def filter_by_year(json):
+        year = sort_by_year(json)
+        if int(year) <= int(cutoff_year):
+            return True
+        else:
+            return False
+        
     albums.sort(key = sort_by_year)
+    albums = filter(filter_by_year, albums)
     
     # save each album's lyrics in a json file
     for album in albums:
         try:
-            searched_album = genius.search_album(f"{album['name']} {artist_name}")
-            searched_album.save_lyrics()
+            search_query = f"{album['name']} {artist_name}"
+            searched_album = genius.search_album(search_query)
+            if searched_album is not None:
+                if SILENT_MODE:
+                    searched_album.save_lyrics()
+                else:
+                    print(f"{searched_album.artist} - {searched_album.name}")
+                    print("Album ok? Y/n")
+                    user_input = input()
+                    if user_input.upper() == "Y" or user_input == "":
+                        searched_album.save_lyrics()
+                    elif user_input.upper() == "N":
+                        continue
+                    
         except requests.Timeout:
             continue
 
@@ -94,7 +127,10 @@ def main():
     if len(sys.argv) == 2:
         get_albums(sys.argv[1])
         generate_unique_word_count()
+    elif len(sys.argv) == 3:
+        get_albums(sys.argv[1], sys.argv[2])
+        generate_unique_word_count()
     else:
-        print("USAGE: python main.py artist_name")
+        print("USAGE: python main.py artist_name optional_silent_mode_Y/N")
 
 main()
