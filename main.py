@@ -35,13 +35,11 @@ def get_albums(artist_name, cutoff_year=2023):
     # sort albums by year (earliest to latest)
     def sort_by_year(json):
         try:
-            return json["release_date_components"]["year"] + \
-                   json["release_date_components"]["month"] + \
-                   json["release_date_components"]["day"]
+            return f"{json['release_date_components']['year']}"
         except KeyError:
-            return 0
+            return str(sys.maxsize)
         except TypeError:
-            return 0
+            return str(sys.maxsize)
         
     # filter by cutoff year (useful if you're searching for an artist with a lot of material after they break up)
     def filter_by_year(json):
@@ -57,7 +55,7 @@ def get_albums(artist_name, cutoff_year=2023):
     # save each album's lyrics in a json file
     for album in albums:
         try:
-            search_query = f"{album['name']} {artist_name}"
+            search_query = f"{artist_name} {album['name']}"
             searched_album = genius.search_album(search_query)
             if searched_album is not None:
                 if SILENT_MODE:
