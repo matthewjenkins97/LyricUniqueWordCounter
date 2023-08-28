@@ -81,55 +81,29 @@ def get_albums(artist_name, cutoff_year, silent_mode, album_list_directory):
     # save each album's lyrics in a json file
     for album in albums:
 
-        success = False
-
         # timeout retries
         for _ in range(5):
 
             try:
-                # Genius seems to vary what is returned based off of
-                # search query so we specify 2 variants to search
-                #
-                # TODO: maybe include year in one of the searches to deal self-titled albums
-                # this depends on Genius's SEO
+                album_to_download = genius.search_album(album_id=album["id"])
 
-                album_name = album["name"].rstrip()
-                search_queries = [f"{album_name}",
-                                  f"{album_name} {artist_name}", 
-                                  f"{artist_name} {album_name}"]
-
-                for query in search_queries:
-
-                    album_to_download = genius.search_album(query)
-
-                    # checking if album artist and name match album_list
-                    if silent_mode:
-                        if album_to_download.name.lower() in album_list and \
-                        album_to_download.artist.name.lower() == artist_name.lower():
-                            album_to_download.save_lyrics()
-                            success = True
-                            break
-
-                    # user input section
-                    else:
-                        user_input = ''
-                        print("Album found:")
-                        print(f"{album_to_download.artist} - {album_to_download.name}")
-                        print("Album ok? Y/n, s to skip album search")
-                        user_input = input()
-                        if user_input.lower() == "y" or user_input == "":
-                            album_to_download.save_lyrics()
-                            success = True
-                            break
-                        if user_input.lower() == "s":
-                            success = True
-                            break
-
-                    if success:
+                if silent_mode:
+                    if album_to_download.name.lower().rstrip() in album_list:
+                        album_to_download.save_lyrics()
                         break
 
-                if success:
-                    break
+                # user input section
+                else:
+                    user_input = ''
+                    print(f"Found album {album_to_download.artist.name} - {album_to_download.name}")
+                    print("Album ok? Y/n, s to skip album search")
+                    user_input = input()
+                    if user_input.lower() == "y" or user_input == "":
+                        album_to_download.save_lyrics()
+                        break
+                    if user_input.lower() == "s":
+                        break
+
 
             except requests.Timeout:
                 pass
