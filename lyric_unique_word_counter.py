@@ -17,7 +17,8 @@ def get_albums(artist_name, cutoff_year, silent_mode, album_list_directory):
     if album_list_directory != "" and silent_mode:
         with open(album_list_directory, encoding="utf-8") as album_list_text:
             for line in album_list_text:
-                album_list.append(line.lower().strip())
+                line = re.sub('\'', '’', line)
+                album_list.append(line.lower().rstrip())
 
     # please substitute this with your own genius key if you are going to fork this.
     genius = lyricsgenius.Genius("GehPJjxd7tBLvvMTbDQnTb01EV00_Pt6Swzp6N2aunBWlVSZ8zlQzZ0GYugYmrnT")
@@ -27,7 +28,7 @@ def get_albums(artist_name, cutoff_year, silent_mode, album_list_directory):
     artist_search = genius.search_artists(artist_name)
     artist_id = artist_search["sections"][0]["hits"][0]["result"]["id"]
 
-    # finding all albums of an artist 
+    # finding all albums of an artist
     page = 1
     albums = []
     current_page = genius.artist_albums(artist_id, 50, page)
@@ -75,7 +76,7 @@ def get_albums(artist_name, cutoff_year, silent_mode, album_list_directory):
 
     # minimizing any searches that we don't need in silent mode
     if silent_mode:
-        albums = filter(lambda x: x["name"].lower() in album_list, albums)
+        albums = filter(lambda x: x["name"].lower().rstrip() in album_list, albums)
 
     # save each album's lyrics in a json file
     for album in albums:
@@ -91,8 +92,11 @@ def get_albums(artist_name, cutoff_year, silent_mode, album_list_directory):
                 #
                 # TODO: maybe include year in one of the searches to deal self-titled albums
                 # this depends on Genius's SEO
-                search_queries = [f"{album['name']}", f"{album['name']} {artist_name}",
-                                  f"{artist_name} {album['name']}"]
+
+                album_name = album["name"].rstrip()
+                search_queries = [f"{album_name}",
+                                  f"{album_name} {artist_name}", 
+                                  f"{artist_name} {album_name}"]
 
                 for query in search_queries:
 
