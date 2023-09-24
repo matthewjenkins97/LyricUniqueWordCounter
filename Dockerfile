@@ -21,4 +21,4 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["python", "lyric_unique_word_counter.py", "The Microphones", "-silent", "./albumlist.txt"]
+CMD ["python", "lyric_unique_word_counter.py", "Chic"]
